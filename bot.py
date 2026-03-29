@@ -145,6 +145,7 @@ async def task_callback(callback: types.CallbackQuery):
         await bot.send_message(
             GROUP_ID,
             f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!"
+            disable_notification=True
         )
     
     # Проверка завершения всех задач
