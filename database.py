@@ -19,7 +19,7 @@ async def init_db():
         await db.execute("""
             CREATE TABLE IF NOT EXISTS stats (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
+                user_id INTEGER UNIQUE,
                 username TEXT,
                 completed_checklists INTEGER DEFAULT 0,
                 last_completed DATE
@@ -54,13 +54,24 @@ async def get_progress(user_id, checklist_type):
 
 async def update_stats(user_id, username):
     async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("""
-            INSERT INTO stats (user_id, username, completed_checklists, last_completed)
-            VALUES (?, ?, 1, date('now'))
-            ON CONFLICT(user_id) DO UPDATE SET
-                completed_checklists = completed_checklists + 1,
-                last_completed = date('now')
-        """, (user_id, username))
+        cursor = await db.execute("""
+            SELECT id FROM stats WHERE user_id = ?
+        """, (user_id,))
+        exists = await cursor.fetchone()
+        
+        if exists:
+            await db.execute("""
+                UPDATE stats SET 
+                    completed_checklists = completed_checklists + 1,
+                    last_completed = date('now')
+                WHERE user_id = ?
+            """, (user_id,))
+        else:
+            await db.execute("""
+                INSERT INTO stats (user_id, username, completed_checklists, last_completed)
+                VALUES (?, ?, 1, date('now'))
+            """, (user_id, username))
+        
         await db.commit()
 
 async def get_all_stats():
