@@ -145,15 +145,6 @@ async def task_callback(callback: types.CallbackQuery):
         f"Выполнено: {completed_count}/{len(tasks)} ({completed_count*100//len(tasks)}%)\n\n"
         f"Отметь выполненные задачи:",
         reply_markup=keyboard
-    )
-    
-    # Если все задачи выполнены
-    if completed_count == len(tasks):
-        await update_stats(user_id, username, checklist_type)
-        await bot.send_message(
-            GROUP_ID,
-            f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!",
-            disable_notification=True
         )
     
     # Проверка завершения всех задач
