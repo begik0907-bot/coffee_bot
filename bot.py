@@ -1,4 +1,9 @@
 import asyncio
+async def main():
+    await init_db()
+    await asyncio.sleep(2)  # ← Ждём 2 секунды перед стартом
+    await start_scheduler()
+    await dp.start_polling(bot)
 import logging
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
