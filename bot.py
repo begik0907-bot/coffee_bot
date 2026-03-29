@@ -355,7 +355,18 @@ async def start_scheduler():
     scheduler.add_job(scheduled_evening_reminder, 'cron', hour=19, minute=0)
     
     scheduler.start()
-
+    
+@dp.message(Command("test_reminder"))
+async def cmd_test_reminder(message: types.Message):
+    if message.from_user.username not in ADMINS:
+        return
+    
+    incomplete = await get_incomplete_users("morning")
+    if incomplete:
+        await send_reminder("morning", incomplete)
+        await message.answer(f"✅ Напоминание отправлено {len(incomplete)} пользователям")
+    else:
+        await message.answer("✅ Все прошли утренний чек-лист!")
 # Запуск бота
 async def main():
     await init_db()
