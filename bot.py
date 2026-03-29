@@ -114,9 +114,38 @@ async def task_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     username = callback.from_user.username or "user"
     
-    await update_stats(user_id, username, checklist_type)
+    # Проверяем текущий прогресс
+    progress = await get_progress(user_id, checklist_type)
+    is_completed = any(p[0] == task_number and p[1] == 1 for p in progress)
+    
+    # Если задача уже выполнена - просто уведомляем
+    if is_completed:
+        await callback.answer("✅ Уже выполнено!", show_alert=False)
+        return
+    
+    # Иначе отмечаем как выполненную
+    await complete_task(user_id, checklist_type, task_number)
     progress = await get_progress(user_id, checklist_type)
     tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
+    
+    completed_count = sum(1 for p in progress if p[1] == 1)
+    keyboard = create_checklist_keyboard(tasks, progress, checklist_type)
+    
+    await callback.message.edit_text(
+        f"{'☀️ ПОДГОТОВКА К ОТКРЫТИЮ' if checklist_type == 'morning' else '🌙 ПОДГОТОВКА К ЗАКРЫТИЮ'}\n\n"
+        f"Сотрудник: @{username}\n"
+        f"Выполнено: {completed_count}/{len(tasks)} ({completed_count*100//len(tasks)}%)\n\n"
+        f"Отметь выполненные задачи:",
+        reply_markup=keyboard
+    )
+    
+    # Если все задачи выполнены
+    if completed_count == len(tasks):
+        await update_stats(user_id, username, checklist_type)
+        await bot.send_message(
+            GROUP_ID,
+            f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!"
+        )
     
     # Проверка завершения всех задач
     completed_count = sum(1 for p in progress if p[1] == 1)
