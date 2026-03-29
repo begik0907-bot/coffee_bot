@@ -129,6 +129,34 @@ async def task_callback(callback: types.CallbackQuery):
         f"Отметь выполненные задачи:",
         reply_markup=keyboard
     )
+@dp.callback_query(F.data.startswith("done_"))
+async def done_callback(callback: types.CallbackQuery):
+    checklist_type = callback.data.split("_")[1]
+    user_id = callback.from_user.id
+    username = callback.from_user.username or "user"
+    
+    progress = await get_progress(user_id, checklist_type)
+    tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
+    completed_count = sum(1 for p in progress if p[1] == 1)
+    
+    if completed_count == len(tasks):
+        await update_stats(user_id, username)
+        await callback.message.edit_text(
+            f"{'☀️ УТРЕННИЙ' if checklist_type == 'morning' else '🌙 ВЕЧЕРНИЙ'} ЧЕК-ЛИСТ\n\n"
+            f"Сотрудник: @{username}\n"
+            f"✅ <b>ВСЕ ЗАДАЧИ ВЫПОЛНЕНЫ!</b>\n"
+            f"Прогресс: {completed_count}/{len(tasks)} (100%)\n\n"
+            f"Молодец! 🎉",
+        )
+        await bot.send_message(
+            GROUP_ID,
+            f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!"
+        )
+    else:
+        await callback.answer(
+            f"⚠️ Сначала выполните все задачи!\nВыполнено: {completed_count}/{len(tasks)}",
+            show_alert=True
+        )    
     
     # Если все задачи выполнены
     if completed_count == len(tasks):
