@@ -143,9 +143,10 @@ async def task_callback(callback: types.CallbackQuery):
     if completed_count == len(tasks):
         await update_stats(user_id, username, checklist_type)
         await bot.send_message(
-            GROUP_ID,
-            f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!"
-        )
+        GROUP_ID,
+        f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!",
+        disable_notification=True  # ← ДОБАВИТЬ ЭТУ СТРОКУ
+    )
     
     # Проверка завершения всех задач
     completed_count = sum(1 for p in progress if p[1] == 1)
