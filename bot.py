@@ -65,7 +65,7 @@ async def send_checklist_to_group(checklist_type):
         keyboard = InlineKeyboardBuilder()
         keyboard.button(text="📝 Начать чек-лист", callback_data=f"start_{checklist_type}")
         
-        await bot.send_message(GROUP_ID, text, reply_markup=keyboard.as_markup())
+        await bot.send_message(GROUP_ID, text, reply_markup=keyboard.as_markup()disable_notification=True)
         logging.info(f"{checklist_type} checklist sent to group")
     except Exception as e:
         logging.error(f"Error sending checklist: {e}")
