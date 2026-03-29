@@ -10,7 +10,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import BOT_TOKEN, GROUP_ID, MORNING_TIME, EVENING_TIME, ADMINS
-from database import init_db, add_task, complete_task, get_progress, update_stats, get_all_stats, reset_daily_tasks
+from database import init_db, add_task, complete_task, get_progress, update_stats, get_all_stats, reset_daily_tasks, get_incomplete_users, get_incomplete_users_evening
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 
@@ -257,10 +257,90 @@ async def cmd_help(message: types.Message):
 async def scheduled_morning():
     await send_checklist_to_group("morning")
     await reset_daily_tasks()
+async def send_reminder(checklist_type, incomplete_users):
+    """Отправить напоминание пользователю"""
+    if checklist_type == "morning":
+        text = "⚠️ <b>НАПОМИНАНИЕ</b>\n\nВы не завершили утренний чек-лист!\nПожалуйста, пройдите его как можно скорее.\n\nИспользуйте команду /morning"
+        time_text = "10:00"
+    else:
+        text = "⚠️ <b>НАПОМИНАНИЕ</b>\n\nВы не завершили вечерний чек-лист!\nПожалуйста, пройдите его перед уходом.\n\nИспользуйте команду /evening"
+        time_text = "22:00"
+    
+    for user_id, username in incomplete_users:
+        try:
+            await bot.send_message(
+                user_id,
+                text,
+                disable_notification=False  # Напоминание со звуком!
+            )
+            logging.info(f"Reminder sent to @{username}")
+        except Exception as e:
+            logging.error(f"Failed to send reminder to {username}: {e}")
+    
+    # Отправляем отчёт в группу если есть незавершившие
+    if incomplete_users:
+        users_text = "\n".join([f"• @{u[1]}" for u in incomplete_users])
+        await bot.send_message(
+            GROUP_ID,
+            f"⚠️ <b>Не прошли чек-лист ({time_text}):</b>\n\n{users_text}",
+            disable_notification=True
+        )
+
+async def scheduled_morning_reminder():
+    """Напоминание об утреннем чек-листе в 10:00"""
+    incomplete = await get_incomplete_users("morning")
+    if incomplete:
+        await send_reminder("morning", incomplete)
+
+async def scheduled_evening_reminder():
+    """Напоминание о вечернем чек-листе в 22:00"""
+    incomplete = await get_incomplete_users_evening()
+    if incomplete:
+        await send_reminder("evening", incomplete)
+    
 
 async def scheduled_evening():
     await send_checklist_to_group("evening")
+async def send_reminder(checklist_type, incomplete_users):
+    """Отправить напоминание пользователю"""
+    if checklist_type == "morning":
+        text = "⚠️ <b>НАПОМИНАНИЕ</b>\n\nВы не завершили утренний чек-лист!\nПожалуйста, пройдите его как можно скорее.\n\nИспользуйте команду /morning"
+        time_text = "10:00"
+    else:
+        text = "⚠️ <b>НАПОМИНАНИЕ</b>\n\nВы не завершили вечерний чек-лист!\nПожалуйста, пройдите его перед уходом.\n\nИспользуйте команду /evening"
+        time_text = "22:00"
+    
+    for user_id, username in incomplete_users:
+        try:
+            await bot.send_message(
+                user_id,
+                text,
+                disable_notification=False  # Напоминание со звуком!
+            )
+            logging.info(f"Reminder sent to @{username}")
+        except Exception as e:
+            logging.error(f"Failed to send reminder to {username}: {e}")
+    
+    # Отправляем отчёт в группу если есть незавершившие
+    if incomplete_users:
+        users_text = "\n".join([f"• @{u[1]}" for u in incomplete_users])
+        await bot.send_message(
+            GROUP_ID,
+            f"⚠️ <b>Не прошли чек-лист ({time_text}):</b>\n\n{users_text}",
+            disable_notification=True
+        )
 
+async def scheduled_morning_reminder():
+    """Напоминание об утреннем чек-листе в 10:00"""
+    incomplete = await get_incomplete_users("morning")
+    if incomplete:
+        await send_reminder("morning", incomplete)
+
+async def scheduled_evening_reminder():
+    """Напоминание о вечернем чек-листе в 22:00"""
+    incomplete = await get_incomplete_users_evening()
+    if incomplete:
+        await send_reminder("evening", incomplete)
 async def start_scheduler():
     scheduler.add_job(scheduled_morning, 'cron', hour=MORNING_TIME.split(":")[0], minute=MORNING_TIME.split(":")[1])
     scheduler.add_job(scheduled_evening, 'cron', hour=EVENING_TIME.split(":")[0], minute=EVENING_TIME.split(":")[1])
