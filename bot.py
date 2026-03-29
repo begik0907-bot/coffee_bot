@@ -42,12 +42,13 @@ def create_checklist_keyboard(tasks, progress, checklist_type):
     for i, task in enumerate(tasks, 1):
         completed = any(p[0] == i and p[1] == 1 for p in progress)
         status = "✅" if completed else "□"
+        task_display = task[:28] + "..." if len(task) > 30 else task
         builder.button(
-            text=f"{status} {i}. {task[:30]}...",
+            text=f"{status} {i}. {task_display}",
             callback_data=f"task_{checklist_type}_{i}"
         )
-    builder.button(text="📊 Мой прогресс", callback_data=f"progress_{checklist_type}")
-    builder.button(text="📸 Фотоотчёт", callback_data=f"photo_{checklist_type}")
+    # Кнопка "Готово" вместо "Мой прогресс"
+    builder.button(text="✅ ГОТОВО", callback_data=f"done_{checklist_type}")
     builder.adjust(1)
     return builder.as_markup()
 
