@@ -342,8 +342,18 @@ async def scheduled_evening_reminder():
     if incomplete:
         await send_reminder("evening", incomplete)
 async def start_scheduler():
+    # Утренний чек-лист (04:00 UTC = 07:00 MSK)
     scheduler.add_job(scheduled_morning, 'cron', hour=MORNING_TIME.split(":")[0], minute=MORNING_TIME.split(":")[1])
+    
+    # Вечерний чек-лист (17:00 UTC = 20:00 MSK)
     scheduler.add_job(scheduled_evening, 'cron', hour=EVENING_TIME.split(":")[0], minute=EVENING_TIME.split(":")[1])
+    
+    # 🔔 Напоминание утреннее (07:00 UTC = 10:00 MSK)
+    scheduler.add_job(scheduled_morning_reminder, 'cron', hour=7, minute=0)
+    
+    # 🔔 Напоминание вечернее (19:00 UTC = 22:00 MSK)
+    scheduler.add_job(scheduled_evening_reminder, 'cron', hour=19, minute=0)
+    
     scheduler.start()
 
 # Запуск бота
