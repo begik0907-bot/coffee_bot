@@ -56,20 +56,23 @@ def create_checklist_keyboard(tasks, progress, checklist_type):
 async def send_checklist_to_group(checklist_type):
     try:
         if checklist_type == "morning":
-            text = "☀️ <b>УТРЕННИЙ ЧЕК-ЛИСТ</b>\n\nКоманда, начинаем смену!\nНажмите кнопку ниже чтобы начать:"
-            tasks = MORNING_TASKS
+            text = "☀️ <b>ПОДГОТОВКА К ОТКРЫТИЮ</b>\n\nКоманда, начинаем смену!\nНажмите кнопку ниже чтобы начать:"
         else:
-            text = "🌙 <b>ВЕЧЕРНИЙ ЧЕК-ЛИСТ</b>\n\nКоманда, завершаем смену!\nНажмите кнопку ниже чтобы начать:"
-            tasks = EVENING_TASKS
+            text = "🌙 <b>ПОДГОТОВКА К ЗАКРЫТИЮ</b>\n\nКоманда, завершаем смену!\nНажмите кнопку ниже чтобы начать:"
         
         keyboard = InlineKeyboardBuilder()
         keyboard.button(text="📝 Начать чек-лист", callback_data=f"start_{checklist_type}")
         
-        await bot.send_message(GROUP_ID, text, reply_markup=keyboard.as_markup())
+        await bot.send_message(
+            GROUP_ID,
+            text,
+            reply_markup=keyboard.as_markup(),
+            disable_notification=True
+        )
         logging.info(f"{checklist_type} checklist sent to group")
     except Exception as e:
         logging.error(f"Error sending checklist: {e}")
-
+        
 # Обработчик команды /start
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
@@ -143,10 +146,10 @@ async def task_callback(callback: types.CallbackQuery):
     if completed_count == len(tasks):
         await update_stats(user_id, username, checklist_type)
         await bot.send_message(
-        GROUP_ID,
-        f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!",
-        disable_notification=True  # ← ДОБАВИТЬ ЭТУ СТРОКУ
-    )
+            GROUP_ID,
+            f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!",
+            disable_notification=True
+        )
     
     # Проверка завершения всех задач
     completed_count = sum(1 for p in progress if p[1] == 1)
@@ -169,7 +172,7 @@ async def done_callback(callback: types.CallbackQuery):
     tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
     completed_count = sum(1 for p in progress if p[1] == 1)
     
-    if completed_count == len(tasks):
+        if completed_count == len(tasks):
         await update_stats(user_id, username, checklist_type)
         await callback.message.edit_text(
             f"{'☀️ УТРЕННИЙ' if checklist_type == 'morning' else '🌙 ВЕЧЕРНИЙ'} ЧЕК-ЛИСТ\n\n"
@@ -178,11 +181,11 @@ async def done_callback(callback: types.CallbackQuery):
             f"Прогресс: {completed_count}/{len(tasks)} (100%)\n\n"
             f"Молодец! 🎉",
         )
-       await bot.send_message(
-        GROUP_ID,
-        f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!",
-        disable_notification=True
-    )
+        await bot.send_message(
+            GROUP_ID,
+            f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!",
+            disable_notification=True
+        )
     else:
         await callback.answer(
             f"⚠️ Сначала выполните все задачи!\nВыполнено: {completed_count}/{len(tasks)}",
