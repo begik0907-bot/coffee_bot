@@ -10,8 +10,10 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = os.getenv("GROUP_ID")
 
 # Время отправки (час:минута)
-MORNING_TIME = "07:00"
-EVENING_TIME = "20:00"
+MORNING_TIME = "04:00"      # 07:00 MSK
+EVENING_TIME = "17:00"      # 20:00 MSK
+MORNING_REMINDER = "07:00"  # 10:00 MSK
+EVENING_REMINDER = "19:00"  # 22:00 MSK
 
 # Админы бота (username без @)
-ADMINS = ["misericordiamZ"]
+ADMINS = ["misericordiamZ", "tobaccoshopI"]
