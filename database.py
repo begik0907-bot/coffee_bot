@@ -101,3 +101,39 @@ async def reset_daily_tasks():
     async with aiosqlite.connect(DB_NAME) as db:
         await db.execute("DELETE FROM checklists WHERE created_date < date('now')")
         await db.commit()
+
+# Добавьте эти функции в конец database.py
+
+async def get_incomplete_users(checklist_type):
+    """Получить список пользователей кто начал но не завершил чек-лист"""
+    async with aiosqlite.connect(DB_NAME) as db:
+        cursor = await db.execute("""
+            SELECT DISTINCT user_id, username FROM checklists
+            WHERE checklist_type = ? 
+            AND created_date = date('now')
+            AND user_id NOT IN (
+                SELECT user_id FROM checklists
+                WHERE checklist_type = ?
+                AND created_date = date('now')
+                GROUP BY user_id
+                HAVING COUNT(*) = 8  -- Для утреннего (8 задач)
+            )
+        """, (checklist_type, checklist_type))
+        return await cursor.fetchall()
+
+async def get_incomplete_users_evening():
+    """Для вечернего чек-листа (7 задач)"""
+    async with aiosqlite.connect(DB_NAME) as db:
+        cursor = await db.execute("""
+            SELECT DISTINCT user_id, username FROM checklists
+            WHERE checklist_type = 'evening'
+            AND created_date = date('now')
+            AND user_id NOT IN (
+                SELECT user_id FROM checklists
+                WHERE checklist_type = 'evening'
+                AND created_date = date('now')
+                GROUP BY user_id
+                HAVING COUNT(*) = 7  -- Для вечернего (7 задач)
+            )
+        """)
+        return await cursor.fetchall()
