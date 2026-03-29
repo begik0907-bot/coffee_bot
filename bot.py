@@ -175,8 +175,14 @@ async def cmd_stats(message: types.Message):
     
     stats = await get_all_stats()
     text = "📊 <b>Статистика команды</b>\n\n"
-    for username, completed, last in stats:
-        text += f"👤 @{username}: {completed} чек-листов (последний: {last})\n"
+    
+    for username, morning, evening, last in stats:
+        total = morning + evening
+        text += f"👤 @{username}\n"
+        text += f"   ☀️ Утренние: {morning}\n"
+        text += f"   🌙 Вечерние: {evening}\n"
+        text += f"   📈 Всего: {total}\n"
+        text += f"   🕐 Последний: {last}\n\n"
     
     await message.answer(text)
 
