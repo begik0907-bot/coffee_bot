@@ -114,7 +114,7 @@ async def task_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     username = callback.from_user.username or "user"
     
-    await complete_task(user_id, checklist_type, task_number)
+    await update_stats(user_id, username, checklist_type)
     progress = await get_progress(user_id, checklist_type)
     tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
     
@@ -140,7 +140,7 @@ async def done_callback(callback: types.CallbackQuery):
     completed_count = sum(1 for p in progress if p[1] == 1)
     
     if completed_count == len(tasks):
-        await update_stats(user_id, username)
+        await update_stats(user_id, username, checklist_type)
         await callback.message.edit_text(
             f"{'☀️ УТРЕННИЙ' if checklist_type == 'morning' else '🌙 ВЕЧЕРНИЙ'} ЧЕК-ЛИСТ\n\n"
             f"Сотрудник: @{username}\n"
