@@ -122,13 +122,47 @@ async def task_callback(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     username = callback.from_user.username or "user"
     
-    # Проверяем текущий прогресс
+    # Сначала получаем текущий прогресс
     progress = await get_progress(user_id, checklist_type)
+    
+    # Проверяем выполнена ли эта задача
     is_completed = any(p[0] == task_number and p[1] == 1 for p in progress)
     
-    # Если задача уже выполнена - просто уведомляем
+    # Если уже выполнена — просто уведомляем и выходим
     if is_completed:
         await callback.answer("✅ Уже выполнено!", show_alert=False)
+        return
+    
+    # Иначе отмечаем как выполненную
+    await complete_task(user_id, checklist_type, task_number)
+    
+    # Получаем обновлённый прогресс
+    progress = await get_progress(user_id, checklist_type)
+    tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
+    
+    completed_count = sum(1 for p in progress if p[1] == 1)
+    total_tasks = len(tasks)
+    percent = int(completed_count * 100 / total_tasks)
+    
+    # Создаём новую клавиатуру
+    keyboard = create_checklist_keyboard(tasks, progress, checklist_type)
+    
+    # Формируем текст
+    title = "☀️ ПОДГОТОВКА К ОТКРЫТИЮ" if checklist_type == "morning" else "🌙 ПОДГОТОВКА К ЗАКРЫТИЮ"
+    
+    new_text = (
+        f"{title}\n\n"
+        f"Сотрудник: @{username}\n"
+        f"Выполнено: {completed_count}/{total_tasks} ({percent}%)\n\n"
+        f"Отметь выполненные задачи:"
+    )
+    
+    # Пытаемся отредактировать сообщение
+    try:
+        await callback.message.edit_text(new_text, reply_markup=keyboard)
+    except Exception as e:
+        # Если не получилось редактировать — просто уведомляем
+        await callback.answer(f"✅ Задача {task_number} выполнена!", show_alert=False)
         return
     
     # Иначе отмечаем как выполненную
