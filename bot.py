@@ -109,17 +109,34 @@ async def start_checklist(callback: types.CallbackQuery):
     
     title = "☀️ ПОДГОТОВКА К ОТКРЫТИЮ" if checklist_type == "morning" else "🌙 ПОДГОТОВКА К ЗАКРЫТИЮ"
     
-    # Отправляем чек-лист в ЛС
-    await bot.send_message(
-        user_id,
-        f"{title}\n\nСотрудник: @{username}\nОтметь выполненные задачи:",
-        reply_markup=keyboard
-    )
-    
-    # Удаляем сообщение в группе
-    await callback.message.delete()
-    await callback.answer(f"✅ Чек-лист отправлен в ЛС!", show_alert=False)
-
+    try:
+        # Пытаемся отправить чек-лист в ЛС
+        await bot.send_message(
+            user_id,
+            f"{title}\n\nСотрудник: @{username}\nОтметь выполненные задачи:",
+            reply_markup=keyboard
+        )
+        
+        # Если успешно — удаляем кнопку в группе
+        await callback.message.delete()
+        await callback.answer(f"✅ Чек-лист отправлен в ЛС!", show_alert=False)
+        
+    except Exception as e:
+        # Ловим ошибку, если бот не может писать пользователю
+        logging.warning(f"Не удалось отправить ЛС пользователю @{username}: {e}")
+        
+        # Удаляем кнопку, чтобы не спамила
+        await callback.message.delete()
+        
+        # Пишем предупреждение в группу
+        await bot.send_message(
+            GROUP_ID,
+            f"⚠️ <b>@{username}</b>, вы еще не запустили бота!\n\n"
+            f"Пожалуйста, перейдите в личные сообщения с ботом и нажмите <b>/start</b>, "
+            f"чтобы получить чек-лист.",
+            disable_notification=False  # Важно привлечь внимание
+        )
+        await callback.answer("❌ Сначала нажмите /start в ЛС с ботом!", show_alert=True)
 # === ОБРАБОТКА ЗАДАЧ ===
 @dp.callback_query(F.data.startswith("task_"))
 async def task_callback(callback: types.CallbackQuery):
