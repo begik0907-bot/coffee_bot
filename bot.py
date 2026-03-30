@@ -109,18 +109,18 @@ async def start_checklist(callback: types.CallbackQuery):
     
     title = "☀️ ПОДГОТОВКА К ОТКРЫТИЮ" if checklist_type == "morning" else "🌙 ПОДГОТОВКА К ЗАКРЫТИЮ"
     
-    # ❌ БЫЛО (открывает в группе):
-    # await callback.message.edit_text(...)
-    
-    # ✅ СТАЛО (отправляет в ЛС):
+    # ✅ Отправляем чек-лист в ЛС
     await bot.send_message(
         user_id,
         f"{title}\n\nСотрудник: @{username}\nОтметь выполненные задачи:",
         reply_markup=keyboard
     )
     
-    # Уведомляем в группе что человек начал
-    await callback.answer(f"✅ Чек-лист отправлен в личные сообщения!", show_alert=False)
+    # ✅ Удаляем сообщение в группе
+    await callback.message.delete()
+    
+    ✅ Уведомление (опционально, можно убрать если не нужно)
+    await callback.answer(f"✅ Чек-лист отправлен в ЛС!", show_alert=False)
     
 # Обработчик нажатия на задачу
 @dp.callback_query(F.data.startswith("task_"))
