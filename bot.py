@@ -98,7 +98,15 @@ async def start_checklist(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     username = callback.from_user.username or "user"
     
-    # Создаём задачи в БД
+    # Очищаем старые задачи этого типа за сегодня
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("""
+            DELETE FROM checklists 
+            WHERE user_id = ? AND checklist_type = ? AND created_date = date('now')
+        """, (user_id, checklist_type))
+        await db.commit()
+    
+    # Создаём новые задачи
     tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
     for i in range(1, len(tasks) + 1):
         await add_task(user_id, username, checklist_type, i)
@@ -106,10 +114,10 @@ async def start_checklist(callback: types.CallbackQuery):
     progress = await get_progress(user_id, checklist_type)
     keyboard = create_checklist_keyboard(tasks, progress, checklist_type)
     
-    title = "☀️ УТРЕННИЙ ЧЕК-ЛИСТ" if checklist_type == "morning" else "🌙 ВЕЧЕРНИЙ ЧЕК-ЛИСТ"
+    title = "☀️ ПОДГОТОВКА К ОТКРЫТИЮ" if checklist_type == "morning" else "🌙 ПОДГОТОВКА К ЗАКРЫТИЮ"
+    
     await callback.message.edit_text(
-        f"{title}\n\nСотрудник: @{username}\n"
-        f"Отметь выполненные задачи:",
+        f"{title}\n\nСотрудник: @{username}\nОтметь выполненные задачи:",
         reply_markup=keyboard
     )
 
