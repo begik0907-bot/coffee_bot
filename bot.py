@@ -218,7 +218,6 @@ async def done_callback(callback: types.CallbackQuery):
     completed_count = sum(1 for p in progress if p[1] == 1)
     
     if completed_count == len(tasks):
-        await update_stats(user_id, username, checklist_type)
         await callback.message.edit_text(
             f"{'☀️ УТРЕННИЙ' if checklist_type == 'morning' else '🌙 ВЕЧЕРНИЙ'} ЧЕК-ЛИСТ\n\n"
             f"Сотрудник: @{username}\n"
