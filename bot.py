@@ -99,15 +99,7 @@ async def start_checklist(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     username = callback.from_user.username or "user"
     
-    # Очищаем старые задачи этого типа за сегодня
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("""
-            DELETE FROM checklists 
-            WHERE user_id = ? AND checklist_type = ? AND created_date = date('now')
-        """, (user_id, checklist_type))
-        await db.commit()
-    
-    # Создаём новые задачи
+    # Создаём новые задачи (функция из database.py)
     tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
     for i in range(1, len(tasks) + 1):
         await add_task(user_id, username, checklist_type, i)
