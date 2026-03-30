@@ -163,6 +163,14 @@ async def task_callback(callback: types.CallbackQuery):
     except Exception as e:
         # Если не получилось редактировать — просто уведомляем
         await callback.answer(f"✅ Задача {task_number} выполнена!", show_alert=False)
+    )
+    
+    # Пытаемся отредактировать сообщение
+    try:
+        await callback.message.edit_text(new_text, reply_markup=keyboard)
+    except Exception as e:
+        # Если не получилось редактировать — просто уведомляем
+        await callback.answer(f"✅ Задача {task_number} выполнена!", show_alert=False)
         return
     
     # Иначе отмечаем как выполненную
