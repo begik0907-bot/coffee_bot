@@ -5,6 +5,7 @@ async def main():
     await start_scheduler()
     await dp.start_polling(bot)
 import logging
+import aiosqlite
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -259,6 +260,19 @@ async def cmd_stats(message: types.Message):
         text += f"   🕐 Последний: {last}\n\n"
     
     await message.answer(text)
+
+@dp.message(Command("reset_stats"))
+async def cmd_reset_stats(message: types.Message):
+    if message.from_user.username not in ADMINS:
+        await message.answer("❌ Только админы!")
+        return
+    
+    async with aiosqlite.connect(DB_NAME) as db:
+        await db.execute("DELETE FROM stats")
+        await db.execute("DELETE FROM checklists")
+        await db.commit()
+    
+    await message.answer("✅ Статистика сброшена!")
 
 # Обработчик /morning
 @dp.message(Command("morning"))
