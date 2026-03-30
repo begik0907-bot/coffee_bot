@@ -99,7 +99,7 @@ async def start_checklist(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     username = callback.from_user.username or "user"
     
-    # Создаём новые задачи (функция из database.py)
+    # Создаём новые задачи
     tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
     for i in range(1, len(tasks) + 1):
         await add_task(user_id, username, checklist_type, i)
@@ -109,11 +109,19 @@ async def start_checklist(callback: types.CallbackQuery):
     
     title = "☀️ ПОДГОТОВКА К ОТКРЫТИЮ" if checklist_type == "morning" else "🌙 ПОДГОТОВКА К ЗАКРЫТИЮ"
     
-    await callback.message.edit_text(
+    # ❌ БЫЛО (открывает в группе):
+    # await callback.message.edit_text(...)
+    
+    # ✅ СТАЛО (отправляет в ЛС):
+    await bot.send_message(
+        user_id,
         f"{title}\n\nСотрудник: @{username}\nОтметь выполненные задачи:",
         reply_markup=keyboard
     )
-
+    
+    # Уведомляем в группе что человек начал
+    await callback.answer(f"✅ Чек-лист отправлен в личные сообщения!", show_alert=False)
+    
 # Обработчик нажатия на задачу
 @dp.callback_query(F.data.startswith("task_"))
 async def task_callback(callback: types.CallbackQuery):
