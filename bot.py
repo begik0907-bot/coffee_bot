@@ -99,7 +99,11 @@ async def start_checklist(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     username = callback.from_user.username or "user"
     
-    # Создаём новые задачи
+    # Запускаем таймер! ⏱️
+    from database import start_session_timer
+    await start_session_timer(user_id, checklist_type)
+
+    # ... остальной код создания задач и отправки сообщения (без изменений) ...
     tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
     for i in range(1, len(tasks) + 1):
         await add_task(user_id, username, checklist_type, i)
@@ -110,31 +114,21 @@ async def start_checklist(callback: types.CallbackQuery):
     title = "☀️ ПОДГОТОВКА К ОТКРЫТИЮ" if checklist_type == "morning" else "🌙 ПОДГОТОВКА К ЗАКРЫТИЮ"
     
     try:
-        # Пытаемся отправить чек-лист в ЛС
         await bot.send_message(
             user_id,
             f"{title}\n\nСотрудник: @{username}\nОтметь выполненные задачи:",
             reply_markup=keyboard
         )
-        
-        # Если успешно — удаляем кнопку в группе
         await callback.message.delete()
         await callback.answer(f"✅ Чек-лист отправлен в ЛС!", show_alert=False)
-        
     except Exception as e:
-        # Ловим ошибку, если бот не может писать пользователю
+        # ... (код обработки ошибки без изменений) ...
         logging.warning(f"Не удалось отправить ЛС пользователю @{username}: {e}")
-        
-        # Удаляем кнопку, чтобы не спамила
         await callback.message.delete()
-        
-        # Пишем предупреждение в группу
         await bot.send_message(
             GROUP_ID,
-            f"⚠️ <b>@{username}</b>, вы еще не запустили бота!\n\n"
-            f"Пожалуйста, перейдите в личные сообщения с ботом и нажмите <b>/start</b>, "
-            f"чтобы получить чек-лист.",
-            disable_notification=False  # Важно привлечь внимание
+            f"⚠️ <b>@{username}</b>, вы еще не запустили бота!\n\nПожалуйста, перейдите в личные сообщения с ботом и нажмите <b>/start</b>.",
+            disable_notification=False
         )
         await callback.answer("❌ Сначала нажмите /start в ЛС с ботом!", show_alert=True)
 # === ОБРАБОТКА ЗАДАЧ ===
@@ -190,19 +184,33 @@ async def done_callback(callback: types.CallbackQuery):
     completed_count = sum(1 for p in progress if p[1] == 1)
     
     if completed_count == len(tasks):
-        await update_stats(user_id, username, checklist_type)
+        # ⏱️ Считаем время прохождения
+        from database import get_session_duration, clear_session_timer
+        duration = await get_session_duration(user_id, checklist_type)
+        await clear_session_timer(user_id, checklist_type)
+        
+        # Обновляем статистику с временем
+        await update_stats(user_id, username, checklist_type, duration)
+        
+        # Формируем сообщение о времени
+        time_msg = f"⏱️ Время прохождения: {duration} мин."
+        if duration > 60:
+            hours = duration // 60
+            mins = duration % 60
+            time_msg = f"⏱️ Время прохождения: {hours} ч. {mins} мин."
         
         await callback.message.edit_text(
             f"{'☀️ УТРЕННИЙ' if checklist_type == 'morning' else '🌙 ВЕЧЕРНИЙ'} ЧЕК-ЛИСТ\n\n"
             f"Сотрудник: @{username}\n"
             f"✅ <b>ВСЕ ЗАДАЧИ ВЫПОЛНЕНЫ!</b>\n"
-            f"Прогресс: {completed_count}/{len(tasks)} (100%)\n\n"
+            f"Прогресс: {completed_count}/{len(tasks)} (100%)\n"
+            f"{time_msg}\n\n"
             f"Молодец! 🎉",
         )
         
         await bot.send_message(
             GROUP_ID,
-            f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист!",
+            f"✅ @{username} завершил {'утренний' if checklist_type == 'morning' else 'вечерний'} чек-лист за {duration} мин.!",
             disable_notification=True
         )
         await callback.answer("🎉 Чек-лист завершен!", show_alert=False)
@@ -222,13 +230,24 @@ async def cmd_stats(message: types.Message):
     stats = await get_all_stats()
     text = "📊 <b>Статистика команды</b>\n\n"
     
-    for username, morning, evening, last in stats:
+    for username, morning, evening, last, last_dur, avg_dur in stats:
         total = morning + evening
+        
+        # Форматирование времени
+        last_time_str = f"{last_dur} мин."
+        if last_dur > 60:
+            last_time_str = f"{last_dur//60}ч {last_dur%60}мин"
+            
+        avg_time_str = f"{avg_dur} мин."
+        if avg_dur > 60:
+            avg_time_str = f"{avg_dur//60}ч {avg_dur%60}мин"
+        
         text += f"👤 @{username}\n"
-        text += f"   ☀️ Утренние: {morning}\n"
-        text += f"   🌙 Вечерние: {evening}\n"
+        text += f"   ☀️ Утренние: {morning} | 🌙 Вечерние: {evening}\n"
         text += f"   📈 Всего: {total}\n"
-        text += f"   🕐 Последний: {last}\n\n"
+        text += f"   ⏱️ Последнее время: {last_time_str}\n"
+        text += f"   📊 Среднее время: {avg_time_str}\n"
+        text += f"   🕐 Последний раз: {last}\n\n"
     
     await message.answer(text)
 
