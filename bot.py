@@ -119,7 +119,7 @@ async def start_checklist(callback: types.CallbackQuery):
     # ✅ Удаляем сообщение в группе
     await callback.message.delete()
     
-    ✅ Уведомление (опционально, можно убрать если не нужно)
+    #Уведомление (опционально, можно убрать если не нужно)
     await callback.answer(f"✅ Чек-лист отправлен в ЛС!", show_alert=False)
     
 # Обработчик нажатия на задачу
