@@ -171,7 +171,6 @@ async def task_callback(callback: types.CallbackQuery):
     except Exception as e:
         # Если не получилось редактировать — просто уведомляем
         await callback.answer(f"✅ Задача {task_number} выполнена!", show_alert=False)
-    )
     
     # Пытаемся отредактировать сообщение
     try:
