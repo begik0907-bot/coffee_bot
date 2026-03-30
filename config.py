@@ -11,7 +11,7 @@ GROUP_ID = os.getenv("GROUP_ID")
 
 # Время отправки (час:минута)
 MORNING_TIME = "04:00"      # 07:00 MSK
-EVENING_TIME = "09:20"      # 20:00 MSK
+EVENING_TIME = "09:30"      # 20:00 MSK
 MORNING_REMINDER = "07:00"  # 10:00 MSK
 EVENING_REMINDER = "19:00"  # 22:00 MSK
 
