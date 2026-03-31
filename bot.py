@@ -99,18 +99,27 @@ async def start_checklist(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     username = callback.from_user.username or "user"
     
-    # Запускаем таймер! ⏱️
-    from database import start_session_timer
-    await start_session_timer(user_id, checklist_type)
-
-    # ... остальной код создания задач и отправки сообщения (без изменений) ...
-    tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
-    for i in range(1, len(tasks) + 1):
-        await add_task(user_id, username, checklist_type, i)
-    
+    # 🔍 ПРОВЕРКА: Есть ли уже задачи за сегодня?
     progress = await get_progress(user_id, checklist_type)
-    keyboard = create_checklist_keyboard(tasks, progress, checklist_type)
     
+    tasks = MORNING_TASKS if checklist_type == "morning" else EVENING_TASKS
+    
+    # Если задач нет (список прогресса пуст), создаем их
+    if not progress:
+        for i in range(1, len(tasks) + 1):
+            await add_task(user_id, username, checklist_type, i)
+        # Запускаем таймер только при первом создании
+        from database import start_session_timer
+        await start_session_timer(user_id, checklist_type)
+        logging.info(f"Created new {checklist_type} tasks for @{username}")
+    else:
+        logging.info(f"Tasks already exist for @{username}, skipping creation.")
+
+    # Получаем актуальный прогресс (созданный сейчас или найденный старый)
+    # Перезапрашиваем, так как могли только что создать
+    progress = await get_progress(user_id, checklist_type)
+    
+    keyboard = create_checklist_keyboard(tasks, progress, checklist_type)
     title = "☀️ ПОДГОТОВКА К ОТКРЫТИЮ" if checklist_type == "morning" else "🌙 ПОДГОТОВКА К ЗАКРЫТИЮ"
     
     try:
@@ -121,13 +130,15 @@ async def start_checklist(callback: types.CallbackQuery):
         )
         await callback.message.delete()
         await callback.answer(f"✅ Чек-лист отправлен в ЛС!", show_alert=False)
+        
     except Exception as e:
-        # ... (код обработки ошибки без изменений) ...
         logging.warning(f"Не удалось отправить ЛС пользователю @{username}: {e}")
         await callback.message.delete()
         await bot.send_message(
             GROUP_ID,
-            f"⚠️ <b>@{username}</b>, вы еще не запустили бота!\n\nПожалуйста, перейдите в личные сообщения с ботом и нажмите <b>/start</b>.",
+            f"⚠️ <b>@{username}</b>, вы еще не запустили бота!\n\n"
+            f"Пожалуйста, перейдите в личные сообщения с ботом и нажмите <b>/start</b>, "
+            f"чтобы получить доступ к чек-листу.",
             disable_notification=False
         )
         await callback.answer("❌ Сначала нажмите /start в ЛС с ботом!", show_alert=True)
@@ -266,25 +277,48 @@ async def cmd_reset_stats(message: types.Message):
     
     await message.answer("✅ Статистика сброшена!")
 
+# Обработчик /morning
 @dp.message(Command("morning"))
 async def cmd_morning(message: types.Message):
     user_id = message.from_user.id
     username = message.from_user.username or "user"
     
+    # 🔍 ПРОВЕРКА на дубли
+    progress = await get_progress(user_id, "morning")
+    if progress:
+        await message.answer("⚠️ У вас уже есть активный утренний чек-лист сегодня. Продолжите выполнение!")
+        # Можно optionally отправить клавиатуру снова, если нужно
+        return
+
     for i in range(1, len(MORNING_TASKS) + 1):
         await add_task(user_id, username, "morning", i)
     
+    # Запуск таймера при ручном старте
+    from database import start_session_timer
+    await start_session_timer(user_id, "morning")
+
     progress = await get_progress(user_id, "morning")
     keyboard = create_checklist_keyboard(MORNING_TASKS, progress, "morning")
     await message.answer("☀️ <b>УТРЕННИЙ ЧЕК-ЛИСТ</b>\n\nОтметь выполненные задачи:", reply_markup=keyboard)
 
+# Обработчик /evening
 @dp.message(Command("evening"))
 async def cmd_evening(message: types.Message):
     user_id = message.from_user.id
     username = message.from_user.username or "user"
+
+    # 🔍 ПРОВЕРКА на дубли
+    progress = await get_progress(user_id, "evening")
+    if progress:
+        await message.answer("⚠️ У вас уже есть активный вечерний чек-лист сегодня. Продолжите выполнение!")
+        return
     
     for i in range(1, len(EVENING_TASKS) + 1):
         await add_task(user_id, username, "evening", i)
+
+    # Запуск таймера
+    from database import start_session_timer
+    await start_session_timer(user_id, "evening")
     
     progress = await get_progress(user_id, "evening")
     keyboard = create_checklist_keyboard(EVENING_TASKS, progress, "evening")
